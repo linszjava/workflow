@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:flowable="http://flowable.org/bpmn" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC" xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI" typeLanguage="http://www.w3.org/2001/XMLSchema" expressionLanguage="http://www.w3.org/1999/XPath" targetNamespace="http://www.flowable.org/processdef">
+  <process id="leaveProcess" name="请假流程" isExecutable="true">
+    
+    <!-- 1. 开始节点 -->
+    <startEvent id="startEvent" name="开始"></startEvent>
+    <sequenceFlow id="flow1" sourceRef="startEvent" targetRef="managerTask"></sequenceFlow>
+    
+    <!-- 2. 部门经理审批节点 (指定经办人为 manager) -->
+    <userTask id="managerTask" name="部门经理审批" flowable:assignee="manager"></userTask>
+    <sequenceFlow id="flow2" sourceRef="managerTask" targetRef="hrTask"></sequenceFlow>
+    
+    <!-- 3. HR审批节点 (指定经办人为 hr) -->
+    <userTask id="hrTask" name="HR审批" flowable:assignee="hr"></userTask>
+    <sequenceFlow id="flow3" sourceRef="hrTask" targetRef="endEvent"></sequenceFlow>
+
+    <!-- 4. 结束节点 (十分重要，没有这个节点流程引擎不知道什么时候算走完结案) -->
+    <endEvent id="endEvent" name="结束"></endEvent>
+
+  </process>
+
+  <!-- 以下是画板坐标属性，不影响引擎执行，为了让 UI 能够读出图 -->
+  <bpmndi:BPMNDiagram id="BPMNDiagram_leaveProcess">
+    <bpmndi:BPMNPlane bpmnElement="leaveProcess" id="BPMNPlane_leaveProcess">
+      <bpmndi:BPMNShape bpmnElement="startEvent" id="BPMNShape_startEvent">
+        <omgdc:Bounds height="30.0" width="30.0" x="100.0" y="150.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="managerTask" id="BPMNShape_managerTask">
+        <omgdc:Bounds height="80.0" width="100.0" x="200.0" y="125.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="hrTask" id="BPMNShape_hrTask">
+        <omgdc:Bounds height="80.0" width="100.0" x="350.0" y="125.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="endEvent" id="BPMNShape_endEvent">
+        <omgdc:Bounds height="28.0" width="28.0" x="500.0" y="151.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</definitions>

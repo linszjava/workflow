@@ -1,0 +1,27 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: flowable-monolith-demo
+#  datasource:
+    # 使用 H2 内存数据库，每次重启应用数据会清空
+#    url: jdbc:h2:mem:flowable;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+#    driver-class-name: org.h2.Driver
+#    username: sa
+#    password:
+  
+  # 如果之后要换 MySQL，注销上面的 H2 并解开这段：
+  datasource:
+     url: jdbc:mysql://127.0.0.1:3306/db_flowable?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&nullCatalogMeansCurrent=true&createDatabaseIfNotExist=true
+     driver-class-name: com.mysql.cj.jdbc.Driver
+     username: root
+     password: linsz99@
+
+flowable:
+  # 服务启动时，如果表不存在则自动创建表（适合开发阶段）
+  database-schema-update: true
+  # 是否开启异步执行器 (如果是简单的流程测试可以设为 false 节约性能，真实场景一般设为 true)
+  async-executor-activate: true
+  # 当抛出异常时是否把历史信息记录下来
+  history-level: audit
