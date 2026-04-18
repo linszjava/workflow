@@ -1,79 +1,51 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
-             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-             xmlns:flowable="http://flowable.org/bpmn"
-             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
-             xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
-             xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
-             typeLanguage="http://www.w3.org/2001/XMLSchema"
-             expressionLanguage="http://www.w3.org/1999/XPath"
-             targetNamespace="http://www.flowable.org/processdef">
-
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:flowable="http://flowable.org/bpmn" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC" xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI" typeLanguage="http://www.w3.org/2001/XMLSchema" expressionLanguage="http://www.w3.org/1999/XPath" targetNamespace="http://www.flowable.org/processdef">
   <process id="leaveProcess" name="请假流程" isExecutable="true">
-
     <!-- ========== 1. 开始节点 ========== -->
     <startEvent id="startEvent" name="提交申请"/>
     <sequenceFlow id="flow_start" sourceRef="startEvent" targetRef="managerTask"/>
-
     <!-- ========== 2. 部门经理审批（候选组，非固定人） ========== -->
-    <userTask id="managerTask" name="部门经理审批"
-              flowable:candidateGroups="deptManager"/>
+    <userTask id="managerTask" name="部门经理审批" flowable:candidateGroups="deptManager"/>
     <sequenceFlow id="flow_manager_to_gw" sourceRef="managerTask" targetRef="managerGateway"/>
-
     <!-- ========== 3. 经理审批网关 ========== -->
     <exclusiveGateway id="managerGateway" name="经理审批结果"/>
-
     <!-- 3a. 经理通过 → HR审批 -->
     <sequenceFlow id="flow_mgr_approve" sourceRef="managerGateway" targetRef="hrTask">
       <conditionExpression xsi:type="tFormalExpression">${approved == true}</conditionExpression>
     </sequenceFlow>
-
     <!-- 3b. 经理驳回 → 退回给申请人修改 -->
     <sequenceFlow id="flow_mgr_reject" sourceRef="managerGateway" targetRef="modifyTask">
       <conditionExpression xsi:type="tFormalExpression">${approved == false}</conditionExpression>
     </sequenceFlow>
-
     <!-- ========== 4. HR审批（候选组） ========== -->
-    <userTask id="hrTask" name="HR审批"
-              flowable:candidateGroups="hrGroup"/>
+    <userTask id="hrTask" name="HR审批" flowable:candidateGroups="hrGroup"/>
     <sequenceFlow id="flow_hr_to_gw" sourceRef="hrTask" targetRef="hrGateway"/>
-
     <!-- ========== 5. HR审批网关 ========== -->
     <exclusiveGateway id="hrGateway" name="HR审批结果"/>
-
     <!-- 5a. HR通过 → 结束 -->
     <sequenceFlow id="flow_hr_approve" sourceRef="hrGateway" targetRef="endEvent">
       <conditionExpression xsi:type="tFormalExpression">${approved == true}</conditionExpression>
     </sequenceFlow>
-
     <!-- 5b. HR驳回 → 退回给申请人修改 -->
     <sequenceFlow id="flow_hr_reject" sourceRef="hrGateway" targetRef="modifyTask">
       <conditionExpression xsi:type="tFormalExpression">${approved == false}</conditionExpression>
     </sequenceFlow>
-
     <!-- ========== 6. 申请人修改（动态指定为发起人） ========== -->
-    <userTask id="modifyTask" name="申请人修改"
-              flowable:assignee="${initiator}"/>
+    <userTask id="modifyTask" name="申请人修改" flowable:assignee="${initiator}"/>
     <sequenceFlow id="flow_modify_to_gw" sourceRef="modifyTask" targetRef="modifyGateway"/>
-
     <!-- ========== 7. 修改后的选择网关 ========== -->
     <exclusiveGateway id="modifyGateway" name="修改后操作"/>
-
     <!-- 7a. 重新提交 → 回到部门经理审批（形成循环） -->
     <sequenceFlow id="flow_resubmit" sourceRef="modifyGateway" targetRef="managerTask">
       <conditionExpression xsi:type="tFormalExpression">${resubmit == true}</conditionExpression>
     </sequenceFlow>
-
     <!-- 7b. 撤回申请 → 结束 -->
     <sequenceFlow id="flow_withdraw" sourceRef="modifyGateway" targetRef="endEvent">
       <conditionExpression xsi:type="tFormalExpression">${resubmit == false}</conditionExpression>
     </sequenceFlow>
-
     <!-- ========== 8. 结束节点 ========== -->
     <endEvent id="endEvent" name="结束"/>
-
   </process>
-
   <!-- 流程图坐标 -->
   <bpmndi:BPMNDiagram id="BPMNDiagram_leaveProcess">
     <bpmndi:BPMNPlane bpmnElement="leaveProcess" id="BPMNPlane_leaveProcess">
