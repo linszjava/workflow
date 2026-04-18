@@ -1,5 +1,6 @@
 package com.lin.workflow.controller;
 
+import com.lin.workflow.common.Result;
 import org.flowable.engine.RepositoryService;
 import org.flowable.engine.RuntimeService;
 import org.flowable.engine.TaskService;
@@ -29,16 +30,18 @@ public class DemoController {
     private TaskService taskService;
 
     /**
-     * 访问 http://localhost:8080/api/demo/status 测试连通性
+     * 访问 http://localhost:8081/api/demo/status 测试连通性
      */
     @GetMapping("/status")
-    public Map<String, Object> status() {
+    public Result<Map<String, Object>> status() {
         Map<String, Object> result = new HashMap<>();
         
         // 查询目前系统里一共部署了多少个流程定义 (XML 文件)
-        long processDefinitionCount = repositoryService.createProcessDefinitionQuery().count();
+        long processDefinitionCount = repositoryService.
+                createProcessDefinitionQuery().count();
         // 查询目前系统里正在运行（执行中）的流程实例有多少个
-        long processInstanceCount = runtimeService.createProcessInstanceQuery().count();
+        long processInstanceCount = runtimeService.
+                createProcessInstanceQuery().count();
         // 查询目前系统里未完成的人工任务（Task）有多少个
         long taskCount = taskService.createTaskQuery().count();
 
@@ -48,6 +51,6 @@ public class DemoController {
         result.put("runningProcessInstances", processInstanceCount);
         result.put("pendingTasks", taskCount);
 
-        return result;
+        return Result.ok(result);
     }
 }
