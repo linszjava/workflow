@@ -47,7 +47,30 @@ async function viewTrace(processInstanceId: string) {
   traceModalVisible.value = true
   try {
     const res = await getProcessActivities(processInstanceId)
-    activities.value = res.data
+    // 1. 过滤：去掉线和网关
+    let list = res.data.filter((a: any) => !['sequenceFlow', 'exclusiveGateway'].includes(a.activityType))
+    
+    // 2. 预测未来节点
+    const isFinished = list.some((a: any) => a.activityType === 'endEvent')
+    if (!isFinished && list.length > 0) {
+      const lastAct = list[list.length - 1]
+      if (lastAct.activityId === 'startEvent') {
+        list.push({ activityName: '部门经理审批', activityType: 'userTask', isFuture: true })
+        list.push({ activityName: 'HR审批', activityType: 'userTask', isFuture: true })
+        list.push({ activityName: '结束', activityType: 'endEvent', isFuture: true })
+      } else if (lastAct.activityId === 'managerTask') {
+        list.push({ activityName: 'HR审批', activityType: 'userTask', isFuture: true })
+        list.push({ activityName: '结束', activityType: 'endEvent', isFuture: true })
+      } else if (lastAct.activityId === 'hrTask') {
+        list.push({ activityName: '结束', activityType: 'endEvent', isFuture: true })
+      } else if (lastAct.activityId === 'modifyTask') {
+        list.push({ activityName: '部门经理审批', activityType: 'userTask', isFuture: true })
+        list.push({ activityName: 'HR审批', activityType: 'userTask', isFuture: true })
+        list.push({ activityName: '结束', activityType: 'endEvent', isFuture: true })
+      }
+    }
+    
+    activities.value = list
   } catch (e: any) {
     showToast('error', '获取轨迹失败')
   } finally {
@@ -142,15 +165,20 @@ const columns = [
       <a-spin :spinning="traceLoading">
         <a-timeline class="trace-timeline" style="margin-top: 16px">
           <a-timeline-item v-for="(act, idx) in activities" :key="idx"
-                           :color="act.endTime ? 'green' : 'blue'">
-            <div class="trace-card">
+                           :color="act.isFuture ? 'gray' : (act.endTime ? 'green' : 'blue')">
+            <div class="trace-card" :style="{ opacity: act.isFuture ? 0.6 : 1 }">
               <div class="trace-title">
                 {{ act.activityName || act.activityId }}
                 <a-tag v-if="act.assignee" color="blue" style="margin-left: 8px">{{ act.assignee }}</a-tag>
+                <a-tag v-if="act.isFuture" color="default" style="margin-left: 8px">📍 待处理</a-tag>
               </div>
-              <div class="trace-meta">
-                {{ act.activityType }} · {{ formatDate(act.startTime) }}
+              <div class="trace-meta" v-if="!act.isFuture">
+                {{ act.activityType === 'startEvent' ? '发起节点' : (act.activityType === 'endEvent' ? '结束节点' : '审批节点') }}
+                <span v-if="act.startTime"> · {{ formatDate(act.startTime) }}</span>
                 <template v-if="act.endTime"> → {{ formatDate(act.endTime) }}</template>
+              </div>
+              <div class="trace-meta" v-else>
+                系统预测步骤
               </div>
               <div v-if="act.comment" class="trace-comment">💬 {{ act.comment }}</div>
             </div>
