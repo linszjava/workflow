@@ -12,3 +12,17 @@ CREATE TABLE IF NOT EXISTS biz_leave (
     create_time         DATETIME      DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time         DATETIME      DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='请假单业务表';
+
+-- 采购单业务表
+CREATE TABLE IF NOT EXISTS biz_purchase (
+    id                  BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键ID',
+    user_id             VARCHAR(32)   NOT NULL COMMENT '申请人ID',
+    item_name           VARCHAR(100)  NOT NULL COMMENT '采购物品',
+    price               DECIMAL(10,2) NOT NULL COMMENT '单价',
+    quantity            INT           NOT NULL COMMENT '数量',
+    reason              VARCHAR(500)  NOT NULL COMMENT '采购用途/事由',
+    status              TINYINT       NOT NULL DEFAULT 0 COMMENT '状态: 0-草稿 1-审批中 2-已通过 3-已驳回 4-已撤销',
+    process_instance_id VARCHAR(64)   DEFAULT NULL COMMENT '关联的流程实例ID',
+    create_time         DATETIME      DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time         DATETIME      DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='采购单业务表';

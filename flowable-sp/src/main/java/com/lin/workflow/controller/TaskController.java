@@ -3,66 +3,44 @@ package com.lin.workflow.controller;
 import com.lin.workflow.common.Result;
 import com.lin.workflow.service.WorkflowTaskService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
 
-/**
- * 任务管理接口
- */
 @RestController
 @RequestMapping("/api/tasks")
 public class TaskController {
 
     @Autowired
-    private WorkflowTaskService workflowTaskService;
+    private WorkflowTaskService taskService;
 
-    /**
-     * 查询指定用户的待办任务
-     */
     @GetMapping
-    public Result<List<Map<String, Object>>> list(@RequestParam String assignee) {
-        return Result.ok(workflowTaskService.getTasksByAssignee(assignee));
+    public Result<List<Map<String, Object>>> getTasks(@RequestParam String userId) {
+        return Result.ok(taskService.getTasksForUser(userId));
     }
 
-    /**
-     * 获取任务详情
-     */
-    @GetMapping("/{taskId}")
-    public Result<Map<String, Object>> detail(@PathVariable String taskId) {
-        Map<String, Object> task = workflowTaskService.getTaskDetail(taskId);
-        if (task == null) {
-            return Result.fail("任务不存在");
-        }
-        return Result.ok(task);
+    @PostMapping("/{taskId}/approve")
+    public Result<String> approve(@PathVariable String taskId, @RequestBody Map<String, String> params) {
+        taskService.approveTask(taskId, params.get("comment"));
+        return Result.ok("审批通过");
     }
 
-    /**
-     * 完成（审批）任务
-     * 请求体示例：
-     * {
-     *   "approved": true,
-     *   "comment": "同意请假"
-     * }
-     */
-    @PostMapping("/{taskId}/complete")
-    public Result<Void> complete(@PathVariable String taskId,
-                                 @RequestBody Map<String, Object> request) {
-        Boolean approved = (Boolean) request.get("approved");
-        String comment = (String) request.get("comment");
+    @PostMapping("/{taskId}/reject")
+    public Result<String> reject(@PathVariable String taskId, @RequestBody Map<String, String> params) {
+        taskService.rejectTask(taskId, params.get("comment"));
+        return Result.ok("审批已驳回");
+    }
 
-        if (approved == null) {
-            return Result.fail("approved 参数不能为空");
-        }
+    @PostMapping("/{taskId}/claim")
+    public Result<String> claim(@PathVariable String taskId, @RequestBody Map<String, String> params) {
+        taskService.claimTask(taskId, params.get("userId"));
+        return Result.ok("认领成功");
+    }
 
-        workflowTaskService.completeTask(taskId, approved, comment);
-        return Result.ok();
+    @PostMapping("/{taskId}/unclaim")
+    public Result<String> unclaim(@PathVariable String taskId) {
+        taskService.unclaimTask(taskId);
+        return Result.ok("取消认领成功");
     }
 }

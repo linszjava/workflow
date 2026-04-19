@@ -16,6 +16,12 @@ const router = createRouter({
       meta: { title: '请假申请', icon: '📝' }
     },
     {
+      path: '/purchase',
+      name: 'PurchaseApply',
+      component: () => import('../views/PurchaseApply.vue'),
+      meta: { title: '采购申请', icon: '🛒' }
+    },
+    {
       path: '/my-leaves',
       name: 'MyLeaves',
       component: () => import('../views/MyLeaves.vue'),

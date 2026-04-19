@@ -31,7 +31,12 @@ public class FlowableIdentityConfig implements CommandLineRunner {
         createUserIfNotExists("manager", "李经理", "部门经理");
         createUserIfNotExists("manager2", "赵副经理", "副经理");
         createUserIfNotExists("hr", "王HR", "人力资源");
-
+        
+        // 采购流程节点用户
+        createUserIfNotExists("finance", "钱财务", "财务部");
+        createUserIfNotExists("expert1", "周专家", "外聘专家");
+        createUserIfNotExists("expert2", "吴专家", "外聘专家");
+        createUserIfNotExists("expert3", "郑专家", "外聘专家");
         // 创建候选组
         createGroupIfNotExists("deptManager", "部门经理组");
         createGroupIfNotExists("hrGroup", "HR组");
@@ -64,11 +69,13 @@ public class FlowableIdentityConfig implements CommandLineRunner {
     }
 
     private void addMembershipIfNotExists(String userId, String groupId) {
-        // Flowable 没有直接的 membership 查询，先尝试创建
-        try {
+        // 先检查是否已经在此组中，避免触发主键冲突导致事务标记为 rollback-only
+        long count = identityService.createUserQuery()
+                .userId(userId)
+                .memberOfGroup(groupId)
+                .count();
+        if (count == 0) {
             identityService.createMembership(userId, groupId);
-        } catch (Exception e) {
-            // 已存在则忽略
         }
     }
 }

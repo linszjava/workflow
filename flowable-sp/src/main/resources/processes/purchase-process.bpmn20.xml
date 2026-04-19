@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" 
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+             xmlns:flowable="http://flowable.org/bpmn" 
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" 
+             xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC" 
+             xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI" 
+             typeLanguage="http://www.w3.org/2001/XMLSchema" 
+             expressionLanguage="http://www.w3.org/1999/XPath" 
+             targetNamespace="http://www.flowable.org/processdef">
+
+  <process id="purchaseProcess" name="采购申请联合审批流程" isExecutable="true">
+    
+    <!-- 1. 开始节点 -->
+    <startEvent id="startEvent" name="提交采购申请"/>
+    <sequenceFlow id="flow_start" sourceRef="startEvent" targetRef="parallelFork"/>
+
+    <!-- 2. 并行网关（分支起点，同时派发任务给经理和财务） -->
+    <parallelGateway id="parallelFork" name="并行分支"/>
+    <sequenceFlow id="flow_fork_to_mgr" sourceRef="parallelFork" targetRef="managerTask"/>
+    <sequenceFlow id="flow_fork_to_fin" sourceRef="parallelFork" targetRef="financeTask"/>
+
+    <!-- 3a. 部门经理审批 -->
+    <userTask id="managerTask" name="部门经理审批" flowable:candidateGroups="deptManager"/>
+    <sequenceFlow id="flow_mgr_to_join" sourceRef="managerTask" targetRef="parallelJoin"/>
+
+    <!-- 3b. 财务审批 -->
+    <userTask id="financeTask" name="财务审批" flowable:assignee="finance"/>
+    <sequenceFlow id="flow_fin_to_join" sourceRef="financeTask" targetRef="parallelJoin"/>
+
+    <!-- 4. 并行网关（汇聚终点，等待经理和财务都通过） -->
+    <parallelGateway id="parallelJoin" name="并行合并"/>
+    <sequenceFlow id="flow_join_to_expert" sourceRef="parallelJoin" targetRef="expertTask"/>
+
+    <!-- 5. 专家组多实例会签 -->
+    <userTask id="expertTask" name="专家组评审" flowable:assignee="${expert}">
+      <multiInstanceLoopCharacteristics isSequential="false" flowable:collection="expertList" flowable:elementVariable="expert">
+        <!-- 会签完成条件：所有分配的实例都完成（即100%投票完成） -->
+        <completionCondition>${nrOfCompletedInstances == nrOfInstances}</completionCondition>
+      </multiInstanceLoopCharacteristics>
+    </userTask>
+    <sequenceFlow id="flow_expert_to_end" sourceRef="expertTask" targetRef="endEvent"/>
+
+    <!-- 6. 结束节点 -->
+    <endEvent id="endEvent" name="结束"/>
+
+  </process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_purchaseProcess">
+    <bpmndi:BPMNPlane bpmnElement="purchaseProcess" id="BPMNPlane_purchaseProcess">
+      <bpmndi:BPMNShape bpmnElement="startEvent" id="BPMNShape_startEvent">
+        <omgdc:Bounds height="30.0" width="30.0" x="50.0" y="135.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="parallelFork" id="BPMNShape_parallelFork">
+        <omgdc:Bounds height="40.0" width="40.0" x="150.0" y="130.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="managerTask" id="BPMNShape_managerTask">
+        <omgdc:Bounds height="80.0" width="100.0" x="250.0" y="50.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="financeTask" id="BPMNShape_financeTask">
+        <omgdc:Bounds height="80.0" width="100.0" x="250.0" y="190.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="parallelJoin" id="BPMNShape_parallelJoin">
+        <omgdc:Bounds height="40.0" width="40.0" x="400.0" y="130.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="expertTask" id="BPMNShape_expertTask">
+        <omgdc:Bounds height="80.0" width="100.0" x="500.0" y="110.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="endEvent" id="BPMNShape_endEvent">
+        <omgdc:Bounds height="28.0" width="28.0" x="650.0" y="136.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge bpmnElement="flow_start" id="BPMNEdge_flow_start">
+        <omgdi:waypoint x="80.0" y="150.0"/>
+        <omgdi:waypoint x="150.0" y="150.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="flow_fork_to_mgr" id="BPMNEdge_flow_fork_to_mgr">
+        <omgdi:waypoint x="170.0" y="130.0"/>
+        <omgdi:waypoint x="170.0" y="90.0"/>
+        <omgdi:waypoint x="250.0" y="90.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="flow_fork_to_fin" id="BPMNEdge_flow_fork_to_fin">
+        <omgdi:waypoint x="170.0" y="170.0"/>
+        <omgdi:waypoint x="170.0" y="230.0"/>
+        <omgdi:waypoint x="250.0" y="230.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="flow_mgr_to_join" id="BPMNEdge_flow_mgr_to_join">
+        <omgdi:waypoint x="350.0" y="90.0"/>
+        <omgdi:waypoint x="420.0" y="90.0"/>
+        <omgdi:waypoint x="420.0" y="130.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="flow_fin_to_join" id="BPMNEdge_flow_fin_to_join">
+        <omgdi:waypoint x="350.0" y="230.0"/>
+        <omgdi:waypoint x="420.0" y="230.0"/>
+        <omgdi:waypoint x="420.0" y="170.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="flow_join_to_expert" id="BPMNEdge_flow_join_to_expert">
+        <omgdi:waypoint x="440.0" y="150.0"/>
+        <omgdi:waypoint x="500.0" y="150.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="flow_expert_to_end" id="BPMNEdge_flow_expert_to_end">
+        <omgdi:waypoint x="600.0" y="150.0"/>
+        <omgdi:waypoint x="650.0" y="150.0"/>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</definitions>

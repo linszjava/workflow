@@ -49,41 +49,55 @@ export function cancelLeave(id: string) {
   return api.post(`/leaves/${id}/cancel`)
 }
 
-// ==================== 任务 API ====================
+// ==================== 统一任务 API (适配请假与采购) ====================
 
 /** 查询待办任务（候选组待认领 + 已认领） */
-export function listLeaveTasks(userId: string) {
-  return api.get('/leaves/tasks', { params: { userId } })
+export function listGlobalTasks(userId: string) {
+  return api.get('/tasks', { params: { userId } })
 }
 
 /** 认领任务 */
-export function claimTask(taskId: string, userId: string) {
-  return api.post(`/leaves/tasks/${taskId}/claim`, null, { params: { userId } })
+export function claimAnyTask(taskId: string, userId: string) {
+  return api.post(`/tasks/${taskId}/claim`, { userId })
 }
 
 /** 取消认领 */
-export function unclaimTask(taskId: string) {
-  return api.post(`/leaves/tasks/${taskId}/unclaim`)
+export function unclaimAnyTask(taskId: string) {
+  return api.post(`/tasks/${taskId}/unclaim`)
 }
 
 /** 审批通过 */
-export function approveTask(taskId: string, comment?: string) {
-  return api.post(`/leaves/tasks/${taskId}/approve`, { comment })
+export function approveAnyTask(taskId: string, comment?: string) {
+  return api.post(`/tasks/${taskId}/approve`, { comment })
 }
 
 /** 审批驳回 */
-export function rejectTask(taskId: string, comment?: string) {
-  return api.post(`/leaves/tasks/${taskId}/reject`, { comment })
+export function rejectAnyTask(taskId: string, comment?: string) {
+  return api.post(`/tasks/${taskId}/reject`, { comment })
 }
 
-/** 重新提交（申请人修改后） */
+/** 重新提交（由于采购暂未做打回逻辑，仅保留在此处兼容请假流程的遗留特定端点） */
 export function resubmitTask(taskId: string, reason?: string) {
   return api.post(`/leaves/tasks/${taskId}/resubmit`, { reason })
 }
 
-/** 撤回（在修改节点放弃） */
+/** 撤回（目前仅适配请假流程） */
 export function withdrawTask(taskId: string) {
   return api.post(`/leaves/tasks/${taskId}/withdraw`)
+}
+
+// ==================== 采购申请 API ====================
+
+/** 提交采购申请 */
+export function submitPurchase(data: {
+  userId: string; itemName: string; price: number; quantity: number; reason: string
+}) {
+  return api.post('/purchases/submit', data)
+}
+
+/** 查询我的采购申请单 */
+export function listMyPurchases(userId: string) {
+  return api.get('/purchases/my', { params: { userId } })
 }
 
 // ==================== 通用查询 API ====================

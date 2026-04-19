@@ -22,7 +22,11 @@ const users = [
   { id: 'zhangsan', label: '张三（员工）' },
   { id: 'manager', label: '李经理（部门经理组）' },
   { id: 'manager2', label: '赵副经理（部门经理组）' },
-  { id: 'hr', label: '王HR（HR组）' }
+  { id: 'hr', label: '王HR（HR组）' },
+  { id: 'finance', label: '钱财务（财务部）' },
+  { id: 'expert1', label: '周专家（会签专家1）' },
+  { id: 'expert2', label: '吴专家（会签专家2）' },
+  { id: 'expert3', label: '郑专家（会签专家3）' }
 ]
 
 // 菜单选中 key
@@ -30,6 +34,7 @@ const selectedKeys = computed(() => {
   const map: Record<string, string> = {
     '/': 'dashboard',
     '/apply': 'apply',
+    '/purchase': 'purchase',
     '/my-leaves': 'my-leaves',
     '/tasks': 'tasks',
     '/history': 'history'
@@ -41,6 +46,7 @@ function onMenuClick({ key }: { key: string }) {
   const map: Record<string, string> = {
     dashboard: '/',
     apply: '/apply',
+    purchase: '/purchase',
     'my-leaves': '/my-leaves',
     tasks: '/tasks',
     history: '/history'
@@ -67,7 +73,7 @@ provide('showToast', showToast)
       <div class="sidebar-logo" @click="router.push('/')">
         <div class="logo-icon">F</div>
         <div>
-          <div class="logo-text">请假管理系统</div>
+          <div class="logo-text">企业协同系统</div>
           <div class="logo-version">Flowable v7.2.0</div>
         </div>
       </div>
@@ -84,10 +90,14 @@ provide('showToast', showToast)
           工作台
         </a-menu-item>
 
-        <a-menu-item-group title="请假管理">
+        <a-menu-item-group title="业务申请">
           <a-menu-item key="apply">
             <template #icon><FormOutlined /></template>
             请假申请
+          </a-menu-item>
+          <a-menu-item key="purchase">
+            <template #icon><FormOutlined /></template>
+            采购申请
           </a-menu-item>
           <a-menu-item key="my-leaves">
             <template #icon><ProfileOutlined /></template>

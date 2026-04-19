@@ -11,8 +11,8 @@ import {
   StopOutlined
 } from '@ant-design/icons-vue'
 import {
-  listLeaveTasks, claimTask, unclaimTask,
-  approveTask, rejectTask, resubmitTask, withdrawTask,
+  listGlobalTasks, claimAnyTask, unclaimAnyTask,
+  approveAnyTask, rejectAnyTask, resubmitTask, withdrawTask,
   getProcessActivities
 } from '../api'
 
@@ -43,7 +43,7 @@ watch(currentUser, () => loadTasks(), { immediate: true })
 async function loadTasks() {
   loading.value = true
   try {
-    const res = await listLeaveTasks(currentUser.value)
+    const res = await listGlobalTasks(currentUser.value)
     tasks.value = res.data
   } catch (e: any) {
     showToast('error', '加载待办失败')
@@ -55,7 +55,7 @@ async function loadTasks() {
 // ---- 认领 ----
 async function handleClaim(record: any) {
   try {
-    await claimTask(record.taskId, currentUser.value)
+    await claimAnyTask(record.taskId, currentUser.value)
     showToast('success', '认领成功，任务已分配给你')
     await loadTasks()
   } catch (e: any) {
@@ -65,7 +65,7 @@ async function handleClaim(record: any) {
 
 async function handleUnclaim(record: any) {
   try {
-    await unclaimTask(record.taskId)
+    await unclaimAnyTask(record.taskId)
     showToast('success', '已退回到候选组')
     await loadTasks()
   } catch (e: any) {
@@ -84,7 +84,7 @@ async function handleApprove() {
   if (!currentTask.value) return
   approving.value = true
   try {
-    await approveTask(currentTask.value.taskId, approvalComment.value)
+    await approveAnyTask(currentTask.value.taskId, approvalComment.value)
     showToast('success', '审批通过 ✅')
     approvalModalVisible.value = false
     await loadTasks()
@@ -99,7 +99,7 @@ async function handleReject() {
   if (!currentTask.value) return
   approving.value = true
   try {
-    await rejectTask(currentTask.value.taskId, approvalComment.value)
+    await rejectAnyTask(currentTask.value.taskId, approvalComment.value)
     showToast('success', '已驳回，退回给申请人修改 🔙')
     approvalModalVisible.value = false
     await loadTasks()
@@ -199,11 +199,10 @@ const leaveTypeMap: Record<string, string> = {
 
 const columns = [
   { title: '状态', dataIndex: 'taskStatus', key: 'taskStatus', width: 90 },
-  { title: '任务', dataIndex: 'taskName', key: 'taskName', width: 120 },
+  { title: '任务节点', dataIndex: 'taskName', key: 'taskName', width: 140 },
+  { title: '业务单号', dataIndex: 'bizTitle', key: 'bizTitle', width: 160 },
+  { title: '详情', dataIndex: 'bizDetail', key: 'bizDetail', ellipsis: true },
   { title: '申请人', dataIndex: 'applicant', key: 'applicant', width: 90 },
-  { title: '类型', dataIndex: 'leaveType', key: 'leaveType', width: 80 },
-  { title: '天数', dataIndex: 'days', key: 'days', width: 60 },
-  { title: '事由', dataIndex: 'reason', key: 'reason', ellipsis: true },
   { title: '操作', key: 'action', width: 220 }
 ]
 </script>
@@ -244,12 +243,12 @@ const columns = [
             <span style="font-weight: 500">{{ record.applicant || record.initiator || '-' }}</span>
           </template>
 
-          <template v-else-if="column.key === 'leaveType'">
-            {{ leaveTypeMap[record.leaveType] || record.leaveType || '-' }}
+          <template v-else-if="column.key === 'bizTitle'">
+            <span style="font-weight: 500">{{ record.bizTitle || '-' }}</span>
           </template>
 
-          <template v-else-if="column.key === 'days'">
-            {{ record.days || '-' }}
+          <template v-else-if="column.key === 'bizDetail'">
+            {{ record.bizDetail || '-' }}
           </template>
 
           <!-- 操作按钮（根据任务类型和状态不同展示不同按钮） -->
@@ -300,15 +299,9 @@ const columns = [
     <a-modal v-model:open="approvalModalVisible"
              :title="`审批 — ${currentTask?.taskName || ''}`" :footer="null" width="500px">
       <a-descriptions :column="2" size="small" bordered style="margin-bottom: 16px">
+        <a-descriptions-item label="单据">{{ currentTask?.bizTitle || '-' }}</a-descriptions-item>
         <a-descriptions-item label="申请人">{{ currentTask?.applicant || '-' }}</a-descriptions-item>
-        <a-descriptions-item label="类型">
-          {{ leaveTypeMap[currentTask?.leaveType] || '-' }}
-        </a-descriptions-item>
-        <a-descriptions-item label="天数">{{ currentTask?.days || '-' }} 天</a-descriptions-item>
-        <a-descriptions-item label="日期">
-          {{ currentTask?.startDate || '-' }} ~ {{ currentTask?.endDate || '-' }}
-        </a-descriptions-item>
-        <a-descriptions-item label="事由" :span="2">{{ currentTask?.reason || '-' }}</a-descriptions-item>
+        <a-descriptions-item label="详情" :span="2">{{ currentTask?.bizDetail || '-' }}</a-descriptions-item>
       </a-descriptions>
 
       <a-form layout="vertical">
