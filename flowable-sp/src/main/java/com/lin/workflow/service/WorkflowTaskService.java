@@ -80,7 +80,12 @@ public class WorkflowTaskService {
 
         // 判断所属流程，拼装对应的业务数据
         String pdId = task.getProcessDefinitionId();
-        map.put("processType", pdId.startsWith("leaveProcess") ? "leave" : (pdId.startsWith("purchaseProcess") ? "purchase" : "unknown"));
+        Map<String, Object> variables = taskService.getVariables(task.getId());
+        
+        String processType = pdId.startsWith("leaveProcess") ? "leave" : 
+                            (pdId.startsWith("purchaseProcess") ? "purchase" : 
+                            (pdId.startsWith("bossSignProcess") ? "bossSign" : "unknown"));
+        map.put("processType", processType);
 
         if (pdId.startsWith("leaveProcess")) {
             Leave leave = leaveMapper.selectOne(new LambdaQueryWrapper<Leave>().eq(Leave::getProcessInstanceId, task.getProcessInstanceId()));
@@ -98,9 +103,20 @@ public class WorkflowTaskService {
                 map.put("bizTitle", "采购申请 - " + purchase.getItemName());
                 map.put("bizDetail", "数量：" + purchase.getQuantity() + " 单价：" + purchase.getPrice() + "，事由：" + purchase.getReason());
             }
+        } else if (pdId.startsWith("bossSignProcess")) {
+            // 外挂子流程：因为进程ID跟宿主不同，我们要使用压进来的变量 bizId 反查源记录
+            String bizIdStr = (String) variables.get("bizId");
+            if (bizIdStr != null) {
+                Leave leave = leaveMapper.selectById(Long.parseLong(bizIdStr));
+                if (leave != null) {
+                    map.put("bizId", bizIdStr);
+                    map.put("applicant", leave.getUserId());
+                    map.put("bizTitle", "【🚨董事长特权审批】 - " + leave.getLeaveType());
+                    map.put("bizDetail", "此单据因请假天数达到 " + leave.getDays() + " 天触发最高加签拦截联动，原事由：" + leave.getReason());
+                }
+            }
         }
 
-        Map<String, Object> variables = taskService.getVariables(task.getId());
         map.put("initiator", variables.get("initiator"));
 
         return map;

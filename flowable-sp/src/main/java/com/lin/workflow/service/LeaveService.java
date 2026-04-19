@@ -69,6 +69,7 @@ public class LeaveService {
         variables.put("leaveType", leave.getLeaveType());
         variables.put("days", leave.getDays());
         variables.put("reason", leave.getReason());
+        variables.put("bizId", String.valueOf(leave.getId()));
 
         ProcessInstance instance = runtimeService.startProcessInstanceByKey(
                 PROCESS_KEY,

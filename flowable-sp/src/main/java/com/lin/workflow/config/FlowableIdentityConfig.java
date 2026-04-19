@@ -38,6 +38,7 @@ public class FlowableIdentityConfig implements CommandLineRunner {
         
         createUserIfNotExists("manager", "李经理", "部门经理", null);
         createUserIfNotExists("manager2", "赵副经理", "副经理", "manager");
+        createUserIfNotExists("boss", "老王", "董事长", null);
         createUserIfNotExists("hr", "王HR", "人力资源", null);
         
         // 采购流程节点用户

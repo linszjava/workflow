@@ -22,9 +22,44 @@
     <sequenceFlow id="flow_manager_to_gw" sourceRef="managerTask" targetRef="managerGateway"/>
     <!-- ========== 3. 经理审批网关 ========== -->
     <exclusiveGateway id="managerGateway" name="经理审批结果"/>
-    <!-- 3a. 经理通过 → HR审批 -->
-    <sequenceFlow id="flow_mgr_approve" sourceRef="managerGateway" targetRef="hrTask">
+    <!-- 3a. 经理通过 → 评估天数网关 -->
+    <sequenceFlow id="flow_mgr_approve" sourceRef="managerGateway" targetRef="daysGateway">
       <conditionExpression xsi:type="tFormalExpression">${approved == true}</conditionExpression>
+    </sequenceFlow>
+    
+    <exclusiveGateway id="daysGateway" name="请假天数评估"/>
+    
+    <!-- 评估1：天数 < 5, 直通 HR -->
+    <sequenceFlow id="flow_days_less" sourceRef="daysGateway" targetRef="hrTask">
+      <conditionExpression xsi:type="tFormalExpression">${days &lt; 5}</conditionExpression>
+    </sequenceFlow>
+
+    <!-- 评估2：天数 >= 5, 挂起当期进城，进入外挂子系统 (Call Activity) -->
+    <sequenceFlow id="flow_days_more" sourceRef="daysGateway" targetRef="bossSubProcess">
+      <conditionExpression xsi:type="tFormalExpression">${days &gt;= 5}</conditionExpression>
+    </sequenceFlow>
+    
+    <callActivity id="bossSubProcess" name="外挂老板特批" calledElement="bossSignProcess">
+      <extensionElements>
+        <!-- 压入参数，注意 bizId 我们稍后在代码里会补上 -->
+        <flowable:in source="initiator" target="initiator"/>
+        <flowable:in source="bizId" target="bizId"/>
+        <!-- 抽回特批结果 -->
+        <flowable:out source="approved" target="bossApproved"/>
+      </extensionElements>
+    </callActivity>
+    
+    <sequenceFlow id="flow_boss_to_gw" sourceRef="bossSubProcess" targetRef="bossGateway"/>
+    <exclusiveGateway id="bossGateway" name="老板审批结果"/>
+    
+    <!-- 老板同意，继续汇流至 HR审批 -->
+    <sequenceFlow id="flow_boss_approve" sourceRef="bossGateway" targetRef="hrTask">
+      <conditionExpression xsi:type="tFormalExpression">${bossApproved == true}</conditionExpression>
+    </sequenceFlow>
+    
+    <!-- 老板驳回，直接退回申请人节点 -->
+    <sequenceFlow id="flow_boss_reject" sourceRef="bossGateway" targetRef="modifyTask">
+      <conditionExpression xsi:type="tFormalExpression">${bossApproved == false}</conditionExpression>
     </sequenceFlow>
     <!-- 3b. 经理驳回 → 退回给申请人修改 -->
     <sequenceFlow id="flow_mgr_reject" sourceRef="managerGateway" targetRef="modifyTask">
@@ -87,6 +122,17 @@
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape bpmnElement="endEvent" id="s8">
         <omgdc:Bounds height="28.0" width="28.0" x="780.0" y="166.0"/>
+      </bpmndi:BPMNShape>
+      
+      <!-- 外挂天数分支组件占位 -->
+      <bpmndi:BPMNShape bpmnElement="daysGateway" id="s_days_gw">
+        <omgdc:Bounds height="40.0" width="40.0" x="330.0" y="50.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="bossSubProcess" id="s_boss_sub">
+        <omgdc:Bounds height="80.0" width="100.0" x="420.0" y="30.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="bossGateway" id="s_boss_gw">
+        <omgdc:Bounds height="40.0" width="40.0" x="550.0" y="50.0"/>
       </bpmndi:BPMNShape>
       
       <!-- 新增件：定时器与催办分支 -->

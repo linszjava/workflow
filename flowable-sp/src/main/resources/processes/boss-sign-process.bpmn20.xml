@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:flowable="http://flowable.org/bpmn"
+             xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+             xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC"
+             xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI"
+             typeLanguage="http://www.w3.org/2001/XMLSchema"
+             expressionLanguage="http://www.w3.org/1999/XPath"
+             targetNamespace="http://www.flowable.org/processdef">
+
+  <process id="bossSignProcess" name="老板加签子流程" isExecutable="true">
+    <!-- 开始节点 -->
+    <startEvent id="startEvent" name="进入外挂加签"/>
+    <sequenceFlow id="flow_start" sourceRef="startEvent" targetRef="bossTask"/>
+
+    <!-- 董事节点 -->
+    <userTask id="bossTask" name="大老板极限特审" flowable:assignee="boss"/>
+    <sequenceFlow id="flow_boss_to_gw" sourceRef="bossTask" targetRef="bossGateway"/>
+
+    <!-- 审批结果网关 -->
+    <exclusiveGateway id="bossGateway" name="结果判定"/>
+    
+    <!-- 1. 通过 -> 设定 bossApproved 为 true 走向结束 -->
+    <sequenceFlow id="flow_boss_approve" sourceRef="bossGateway" targetRef="endEvent">
+      <conditionExpression xsi:type="tFormalExpression">${approved == true}</conditionExpression>
+    </sequenceFlow>
+    
+    <!-- 2. 拒绝 -> 走向结束 -->
+    <sequenceFlow id="flow_boss_reject" sourceRef="bossGateway" targetRef="endEvent">
+      <conditionExpression xsi:type="tFormalExpression">${approved == false}</conditionExpression>
+    </sequenceFlow>
+
+    <!-- 结束节点；注意：此时流程实例内带有 approved 布尔值变量，主干可以通过 out 参数名转接抓取走 -->
+    <endEvent id="endEvent" name="外挂结束归位"/>
+
+  </process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_bossSignProcess">
+    <bpmndi:BPMNPlane bpmnElement="bossSignProcess" id="BPMNPlane_bossSignProcess">
+      <bpmndi:BPMNShape bpmnElement="startEvent" id="BPMNShape_startEvent">
+        <omgdc:Bounds height="30.0" width="30.0" x="100.0" y="100.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="bossTask" id="BPMNShape_bossTask">
+        <omgdc:Bounds height="80.0" width="100.0" x="180.0" y="75.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="bossGateway" id="BPMNShape_bossGateway">
+        <omgdc:Bounds height="40.0" width="40.0" x="330.0" y="95.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="endEvent" id="BPMNShape_endEvent">
+        <omgdc:Bounds height="28.0" width="28.0" x="420.0" y="101.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge bpmnElement="flow_start" id="BPMNEdge_flow_start">
+        <omgdi:waypoint x="130.0" y="115.0"/>
+        <omgdi:waypoint x="180.0" y="115.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="flow_boss_to_gw" id="BPMNEdge_flow_boss_to_gw">
+        <omgdi:waypoint x="280.0" y="115.0"/>
+        <omgdi:waypoint x="330.0" y="115.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="flow_boss_approve" id="BPMNEdge_flow_boss_approve">
+        <omgdi:waypoint x="370.0" y="115.0"/>
+        <omgdi:waypoint x="420.0" y="115.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="flow_boss_reject" id="BPMNEdge_flow_boss_reject">
+        <omgdi:waypoint x="350.0" y="135.0"/>
+        <omgdi:waypoint x="350.0" y="170.0"/>
+        <omgdi:waypoint x="434.0" y="170.0"/>
+        <omgdi:waypoint x="434.0" y="129.0"/>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</definitions>

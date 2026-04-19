@@ -22,6 +22,7 @@ const users = [
   { id: 'zhangsan', label: '张三（员工）' },
   { id: 'manager', label: '李经理（部门经理组）' },
   { id: 'manager2', label: '赵副经理（部门经理组）' },
+  { id: 'boss', label: '老王（董事长）' },
   { id: 'hr', label: '王HR（HR组）' },
   { id: 'finance', label: '钱财务（财务部）' },
   { id: 'expert1', label: '周专家（会签专家1）' },
