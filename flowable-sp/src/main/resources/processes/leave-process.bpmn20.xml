@@ -9,6 +9,16 @@
         <flowable:taskListener event="create" delegateExpression="${bossTaskListener}" />
       </extensionElements>
     </userTask>
+    <!-- 边界定时逃生阀: 1分钟不批触发 -->
+    <boundaryEvent id="urgeTimer" attachedToRef="managerTask" cancelActivity="false">
+      <timerEventDefinition>
+        <timeDuration>PT1M</timeDuration>
+      </timerEventDefinition>
+    </boundaryEvent>
+    <sequenceFlow id="flow_timer_to_urge" sourceRef="urgeTimer" targetRef="urgeServiceTask" />
+    <serviceTask id="urgeServiceTask" name="发送催办提醒" flowable:delegateExpression="${urgeService}" />
+    <sequenceFlow id="flow_urge_end" sourceRef="urgeServiceTask" targetRef="urgeEndEvent" />
+    <endEvent id="urgeEndEvent" name="催办结束" />
     <sequenceFlow id="flow_manager_to_gw" sourceRef="managerTask" targetRef="managerGateway"/>
     <!-- ========== 3. 经理审批网关 ========== -->
     <exclusiveGateway id="managerGateway" name="经理审批结果"/>
@@ -25,10 +35,12 @@
     <sequenceFlow id="flow_hr_to_gw" sourceRef="hrTask" targetRef="hrGateway"/>
     <!-- ========== 5. HR审批网关 ========== -->
     <exclusiveGateway id="hrGateway" name="HR审批结果"/>
-    <!-- 5a. HR通过 → 结束 -->
-    <sequenceFlow id="flow_hr_approve" sourceRef="hrGateway" targetRef="endEvent">
+    <!-- 5a. HR通过 → 自动归档系统 -->
+    <sequenceFlow id="flow_hr_approve" sourceRef="hrGateway" targetRef="archiveServiceTask">
       <conditionExpression xsi:type="tFormalExpression">${approved == true}</conditionExpression>
     </sequenceFlow>
+    <serviceTask id="archiveServiceTask" name="自动归档处理" flowable:delegateExpression="${autoArchiveService}" />
+    <sequenceFlow id="flow_archive_end" sourceRef="archiveServiceTask" targetRef="endEvent" />
     <!-- 5b. HR驳回 → 退回给申请人修改 -->
     <sequenceFlow id="flow_hr_reject" sourceRef="hrGateway" targetRef="modifyTask">
       <conditionExpression xsi:type="tFormalExpression">${approved == false}</conditionExpression>
@@ -74,7 +86,23 @@
         <omgdc:Bounds height="40.0" width="40.0" x="170.0" y="320.0"/>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape bpmnElement="endEvent" id="s8">
-        <omgdc:Bounds height="28.0" width="28.0" x="640.0" y="166.0"/>
+        <omgdc:Bounds height="28.0" width="28.0" x="780.0" y="166.0"/>
+      </bpmndi:BPMNShape>
+      
+      <!-- 新增件：定时器与催办分支 -->
+      <bpmndi:BPMNShape bpmnElement="urgeTimer" id="s_timer">
+        <omgdc:Bounds height="30.0" width="30.0" x="180.0" y="205.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="urgeServiceTask" id="s_urge_task">
+        <omgdc:Bounds height="80.0" width="100.0" x="140.0" y="260.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="urgeEndEvent" id="s_urge_end">
+        <omgdc:Bounds height="28.0" width="28.0" x="176.0" y="380.0"/>
+      </bpmndi:BPMNShape>
+      
+      <!-- 新增件：自动归档机器件 -->
+      <bpmndi:BPMNShape bpmnElement="archiveServiceTask" id="s_archive_task">
+        <omgdc:Bounds height="80.0" width="100.0" x="620.0" y="140.0"/>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge bpmnElement="flow_start" id="BPMNEdge_flow_start">
         <omgdi:waypoint x="90.0" y="180.0"/>
@@ -99,7 +127,19 @@
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge bpmnElement="flow_hr_approve" id="BPMNEdge_flow_hr_approve">
         <omgdi:waypoint x="570.0" y="180.0"/>
-        <omgdi:waypoint x="640.0" y="180.0"/>
+        <omgdi:waypoint x="620.0" y="180.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="flow_archive_end" id="BPMNEdge_flow_archive_end">
+        <omgdi:waypoint x="720.0" y="180.0"/>
+        <omgdi:waypoint x="780.0" y="180.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="flow_timer_to_urge" id="BPMNEdge_flow_timer">
+        <omgdi:waypoint x="195.0" y="235.0"/>
+        <omgdi:waypoint x="190.0" y="260.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="flow_urge_end" id="BPMNEdge_flow_urge_end">
+        <omgdi:waypoint x="190.0" y="340.0"/>
+        <omgdi:waypoint x="190.0" y="380.0"/>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge bpmnElement="flow_hr_reject" id="BPMNEdge_flow_hr_reject">
         <omgdi:waypoint x="550.0" y="200.0"/>
