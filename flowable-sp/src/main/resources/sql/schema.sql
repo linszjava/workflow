@@ -1,3 +1,13 @@
+-- 系统人员/组织架构表
+CREATE TABLE IF NOT EXISTS biz_user (
+    id                  BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键ID',
+    user_id             VARCHAR(32)   NOT NULL UNIQUE COMMENT '账号ID',
+    user_name           VARCHAR(64)   NOT NULL COMMENT '真实姓名',
+    role_name           VARCHAR(64)   COMMENT '角色/岗位',
+    manager_id          VARCHAR(32)   COMMENT '直属领导账号ID',
+    create_time         DATETIME      DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='企业组织架构人员表';
+
 -- 请假单业务表
 CREATE TABLE IF NOT EXISTS biz_leave (
     id                  BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键ID',

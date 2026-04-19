@@ -1,5 +1,8 @@
 package com.lin.workflow.config;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.lin.workflow.entity.BizUser;
+import com.lin.workflow.mapper.BizUserMapper;
 import org.flowable.engine.IdentityService;
 import org.flowable.idm.api.Group;
 import org.flowable.idm.api.User;
@@ -24,19 +27,24 @@ public class FlowableIdentityConfig implements CommandLineRunner {
 
     @Autowired
     private IdentityService identityService;
+
+    @Autowired
+    private BizUserMapper bizUserMapper;
     @Override
     public void run(String... args) {
-        // 创建用户
-        createUserIfNotExists("zhangsan", "张三", "员工");
-        createUserIfNotExists("manager", "李经理", "部门经理");
-        createUserIfNotExists("manager2", "赵副经理", "副经理");
-        createUserIfNotExists("hr", "王HR", "人力资源");
+        // 创建用户及落库组织架构表 (设置明确的汇报线 managerId)
+        createUserIfNotExists("zhangsan", "张三", "员工", "manager");
+        createUserIfNotExists("lisi", "李四", "员工", "manager2");
+        
+        createUserIfNotExists("manager", "李经理", "部门经理", null);
+        createUserIfNotExists("manager2", "赵副经理", "副经理", "manager");
+        createUserIfNotExists("hr", "王HR", "人力资源", null);
         
         // 采购流程节点用户
-        createUserIfNotExists("finance", "钱财务", "财务部");
-        createUserIfNotExists("expert1", "周专家", "外聘专家");
-        createUserIfNotExists("expert2", "吴专家", "外聘专家");
-        createUserIfNotExists("expert3", "郑专家", "外聘专家");
+        createUserIfNotExists("finance", "钱财务", "财务部", null);
+        createUserIfNotExists("expert1", "周专家", "外聘专家", null);
+        createUserIfNotExists("expert2", "吴专家", "外聘专家", null);
+        createUserIfNotExists("expert3", "郑专家", "外聘专家", null);
         // 创建候选组
         createGroupIfNotExists("deptManager", "部门经理组");
         createGroupIfNotExists("hrGroup", "HR组");
@@ -51,12 +59,23 @@ public class FlowableIdentityConfig implements CommandLineRunner {
         System.out.println("  hrGroup 组: hr");
     }
 
-    private void createUserIfNotExists(String userId, String firstName, String lastName) {
+    private void createUserIfNotExists(String userId, String firstName, String lastName, String managerId) {
         if (identityService.createUserQuery().userId(userId).count() == 0) {
             User user = identityService.newUser(userId);
             user.setFirstName(firstName);
             user.setLastName(lastName);
             identityService.saveUser(user);
+        }
+        
+        // 双写同步至组织架构业务表 biz_user
+        long count = bizUserMapper.selectCount(new LambdaQueryWrapper<BizUser>().eq(BizUser::getUserId, userId));
+        if (count == 0) {
+            BizUser bizUser = new BizUser();
+            bizUser.setUserId(userId);
+            bizUser.setUserName(firstName + lastName); // 业务表合成为全名
+            bizUser.setRoleName(lastName);
+            bizUser.setManagerId(managerId);
+            bizUserMapper.insert(bizUser);
         }
     }
 

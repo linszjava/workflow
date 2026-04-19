@@ -76,6 +76,16 @@ export function rejectAnyTask(taskId: string, comment?: string) {
   return api.post(`/tasks/${taskId}/reject`, { comment })
 }
 
+/** 任务转办（彻底转交） */
+export function transferTask(taskId: string, targetUserId: string) {
+  return api.post(`/tasks/${taskId}/transfer`, { targetUserId })
+}
+
+/** 任务委派（代为处理后打回） */
+export function delegateTask(taskId: string, targetUserId: string) {
+  return api.post(`/tasks/${taskId}/delegate`, { targetUserId })
+}
+
 /** 重新提交（由于采购暂未做打回逻辑，仅保留在此处兼容请假流程的遗留特定端点） */
 export function resubmitTask(taskId: string, reason?: string) {
   return api.post(`/leaves/tasks/${taskId}/resubmit`, { reason })
@@ -101,6 +111,11 @@ export function listMyPurchases(userId: string) {
 }
 
 // ==================== 通用查询 API ====================
+
+/** 获取系统全量用户（花名册） */
+export function listSystemUsers() {
+  return api.get('/users/list')
+}
 
 /** 获取系统状态 */
 export function getStatus() {

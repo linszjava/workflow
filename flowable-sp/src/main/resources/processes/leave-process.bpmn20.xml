@@ -4,8 +4,11 @@
     <!-- ========== 1. 开始节点 ========== -->
     <startEvent id="startEvent" name="提交申请"/>
     <sequenceFlow id="flow_start" sourceRef="startEvent" targetRef="managerTask"/>
-    <!-- ========== 2. 部门经理审批（候选组，非固定人） ========== -->
-    <userTask id="managerTask" name="部门经理审批" flowable:candidateGroups="deptManager"/>
+    <userTask id="managerTask" name="部门经理审批">
+      <extensionElements>
+        <flowable:taskListener event="create" delegateExpression="${bossTaskListener}" />
+      </extensionElements>
+    </userTask>
     <sequenceFlow id="flow_manager_to_gw" sourceRef="managerTask" targetRef="managerGateway"/>
     <!-- ========== 3. 经理审批网关 ========== -->
     <exclusiveGateway id="managerGateway" name="经理审批结果"/>

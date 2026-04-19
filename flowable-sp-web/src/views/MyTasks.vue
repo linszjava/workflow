@@ -13,7 +13,7 @@ import {
 import {
   listGlobalTasks, claimAnyTask, unclaimAnyTask,
   approveAnyTask, rejectAnyTask, resubmitTask, withdrawTask,
-  getProcessActivities
+  getProcessActivities, transferTask, delegateTask, listSystemUsers
 } from '../api'
 
 const currentUser = inject('currentUser') as any
@@ -37,6 +37,55 @@ const submitting = ref(false)
 const traceModalVisible = ref(false)
 const activities = ref<any[]>([])
 const traceLoading = ref(false)
+
+// 指派转交弹窗
+const assignModalVisible = ref(false)
+const assignAction = ref('') // 'transfer' or 'delegate'
+const assignTarget = ref('')
+const assignLoading = ref(false)
+const systemUsers = ref<any[]>([])
+
+async function loadSystemUsers() {
+  try {
+    const res = await listSystemUsers()
+    systemUsers.value = res.data
+  } catch (e: any) {
+    showToast('error', '加载人员列表失败')
+  }
+}
+
+function openAssign(action: string, record: any) {
+  currentTask.value = record
+  assignAction.value = action
+  assignTarget.value = undefined // 重置为未选状态
+  assignModalVisible.value = true
+  if (systemUsers.value.length === 0) {
+    loadSystemUsers()
+  }
+}
+
+async function handleAssignSubmit() {
+  if (!assignTarget.value) {
+    showToast('error', '请输入受托人ID')
+    return
+  }
+  assignLoading.value = true
+  try {
+    if (assignAction.value === 'transfer') {
+      await transferTask(currentTask.value.taskId, assignTarget.value)
+      showToast('success', '已永久转交给 ' + assignTarget.value)
+    } else {
+      await delegateTask(currentTask.value.taskId, assignTarget.value)
+      showToast('success', '已委派，被委派人完成后会自动返回给您')
+    }
+    assignModalVisible.value = false
+    await loadTasks()
+  } catch(e: any) {
+    showToast('error', '指派失败: ' + e.message)
+  } finally {
+    assignLoading.value = false
+  }
+}
 
 watch(currentUser, () => loadTasks(), { immediate: true })
 
@@ -237,6 +286,8 @@ const columns = [
             <a-tag :color="record.taskDefinitionKey === 'modifyTask' ? 'red' : 'blue'">
               {{ record.taskName }}
             </a-tag>
+            <a-tag v-if="record.delegationState === 'PENDING'" color="purple">代人受托</a-tag>
+            <a-tag v-if="record.delegationState === 'RESOLVED'" color="green">委派回归</a-tag>
           </template>
 
           <template v-else-if="column.key === 'applicant'">
@@ -272,13 +323,30 @@ const columns = [
                   </a-button>
                 </template>
 
-                <!-- 已认领：显示审批 + 取消认领 -->
+                <!-- 已认领：显示审批 + 指派能力 + 退回 -->
                 <template v-else>
-                  <a-button type="primary" size="small" @click="openApproval(record)">审批</a-button>
-                  <a-button size="small" @click="handleUnclaim(record)">
-                    <template #icon><UndoOutlined /></template>
-                    退回
+                  <a-button type="primary" size="small" @click="openApproval(record)">
+                    {{ record.delegationState === 'PENDING' ? '代拟并返回' : '去办理' }}
                   </a-button>
+                  <a-dropdown trigger="click">
+                    <a-button size="small">
+                      更多 <NodeIndexOutlined />
+                    </a-button>
+                    <template #overlay>
+                      <a-menu>
+                        <a-menu-item key="transfer" @click="openAssign('transfer', record)">
+                          彻底转交他人(Transfer)
+                        </a-menu-item>
+                        <a-menu-item key="delegate" @click="openAssign('delegate', record)">
+                          委派代拟意见(Delegate)
+                        </a-menu-item>
+                        <a-menu-divider />
+                        <a-menu-item key="unclaim" @click="handleUnclaim(record)">
+                          丢回公海池(Unclaim)
+                        </a-menu-item>
+                      </a-menu>
+                    </template>
+                  </a-dropdown>
                 </template>
               </template>
 
@@ -373,6 +441,29 @@ const columns = [
           </a-timeline-item>
         </a-timeline>
       </a-spin>
+    </a-modal>
+
+    <!-- ========== 转交/委派 弹窗 ========== -->
+    <a-modal v-model:open="assignModalVisible"
+             :title="assignAction === 'transfer' ? '转交审批权' : '委派代拟意见'" :footer="null" width="400px">
+      <a-alert :message="assignAction === 'transfer' ? '将任务执行权永久转给另一个人。' : '借由别人代拟意见，对方点完成(代拟)后，任务将强制回传进您的收件箱。'"
+               :type="assignAction === 'transfer' ? 'info' : 'warning'" show-icon style="margin-bottom: 16px" />
+      <a-form layout="vertical">
+        <a-form-item label="选择受理人">
+          <a-select v-model:value="assignTarget" placeholder="请下拉选取接防人员" style="width: 100%" show-search option-filter-prop="label">
+            <a-select-option v-for="u in systemUsers" :key="u.userId" :value="u.userId" :label="u.userName">
+               {{ u.userName || u.userId }}
+               <span style="color: gray; font-size: 12px; margin-left: 8px">[{{ u.roleName || '无岗位' }}]</span>
+            </a-select-option>
+          </a-select>
+        </a-form-item>
+      </a-form>
+      <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px">
+        <a-button @click="assignModalVisible = false" :disabled="assignLoading">取消</a-button>
+        <a-button type="primary" :loading="assignLoading" @click="handleAssignSubmit">
+          确认
+        </a-button>
+      </div>
     </a-modal>
   </div>
 </template>

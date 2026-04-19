@@ -7,6 +7,7 @@ import com.lin.workflow.mapper.LeaveMapper;
 import com.lin.workflow.mapper.PurchaseMapper;
 import org.flowable.engine.RuntimeService;
 import org.flowable.engine.TaskService;
+import org.flowable.task.api.DelegationState;
 import org.flowable.task.api.Task;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -69,6 +70,13 @@ public class WorkflowTaskService {
         map.put("taskStatus", taskStatus);
         map.put("createTime", task.getCreateTime());
         map.put("processInstanceId", task.getProcessInstanceId());
+        
+        // 追加人事委托状态枚举：PENDING(委派中), RESOLVED(已打回给主人)
+        if (task.getDelegationState() != null) {
+            map.put("delegationState", task.getDelegationState().name());
+        } else {
+            map.put("delegationState", "NONE");
+        }
 
         // 判断所属流程，拼装对应的业务数据
         String pdId = task.getProcessDefinitionId();
@@ -111,9 +119,28 @@ public class WorkflowTaskService {
     public void unclaimTask(String taskId) {
         taskService.unclaim(taskId);
     }
+    
+    /**
+     * 转办 (Transfer) - 直接把任务执行权永久转给另一个人
+     */
+    @Transactional
+    public void transferTask(String taskId, String targetUserId) {
+        Task task = getTaskOrThrow(taskId);
+        taskService.setAssignee(taskId, targetUserId);
+    }
 
     /**
-     * 通用审批通过（兼容各种流程）
+     * 委派 (Delegate) - 委托别人处理，对方点完成后，任务强制返回自己手中做最终决断
+     */
+    @Transactional
+    public void delegateTask(String taskId, String targetUserId) {
+        Task task = getTaskOrThrow(taskId);
+        // 调用 flowable 引擎自带的委派功能
+        taskService.delegateTask(taskId, targetUserId);
+    }
+
+    /**
+     * 通用审批通过（兼容各种流程 & 兼容判定委托）
      */
     @Transactional
     public void approveTask(String taskId, String comment) {
@@ -124,6 +151,13 @@ public class WorkflowTaskService {
 
         Map<String, Object> variables = new HashMap<>();
         variables.put("approved", true);
+        
+        // 核心检查：如果这是别人委派(Delegate)给我的任务，我点击其实是【Resolve】退回给主人
+        if (DelegationState.PENDING.equals(task.getDelegationState())) {
+            taskService.resolveTask(taskId, variables);
+            return; // Resolve 并没有结束任务生命周期，直接中断，不进行后续会签和结束检查
+        }
+
         taskService.complete(taskId, variables);
 
         // 会签检查处理：由于每个完成都会调用 complete，流程可能会继续。
@@ -143,6 +177,13 @@ public class WorkflowTaskService {
 
         Map<String, Object> variables = new HashMap<>();
         variables.put("approved", false);
+        
+        if (DelegationState.PENDING.equals(task.getDelegationState())) {
+            // 如果是被委派人想要打回，同样调用 resolve 以发还给主人
+            taskService.resolveTask(taskId, variables);
+            return;
+        }
+        
         taskService.complete(taskId, variables);
 
         // 为了Demo简化，如果采购单有驳回逻辑，也在这更新。
